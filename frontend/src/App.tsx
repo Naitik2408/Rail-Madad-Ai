@@ -18,6 +18,14 @@ import Blank from "./pages/Blank";
 import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
+import LandingPage from "./pages/LandingPage";
+import AllComplaints from "./pages/AllComplaints";
+import AIInsights from "./pages/AIInsights";
+import DepartmentRouting from "./pages/DepartmentRouting";
+import Analytics from "./pages/Analytics";
+import PredictiveMaintenance from "./pages/PredictiveMaintenance";
+import Settings from "./pages/Settings";
+import ComplaintChatbot from "./pages/ComplaintChatbot";
 
 export default function App() {
   return (
@@ -25,9 +33,21 @@ export default function App() {
       <Router>
         <ScrollToTop />
         <Routes>
-          {/* Dashboard Layout */}
-          <Route path="/TailAdmin/" element={<AppLayout />}>
-            <Route index element={<Home />} />
+          {/* Landing Page */}
+          <Route path="/" element={<LandingPage />} />
+
+          {/* Public Complaint Chatbot */}
+          <Route path="/complaints" element={<ComplaintChatbot />} />
+
+          {/* Admin Dashboard Layout */}
+          <Route path="/admin" element={<AppLayout />}>
+            <Route path="dashboard" element={<Home />} />
+            <Route path="complaints" element={<AllComplaints />} />
+            <Route path="ai-insights" element={<AIInsights />} />
+            <Route path="department-routing" element={<DepartmentRouting />} />
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="predictive-maintenance" element={<PredictiveMaintenance />} />
+            <Route path="settings" element={<Settings />} />
 
             {/* Others Page */}
             <Route path="profile" element={<UserProfiles />} />
@@ -54,8 +74,8 @@ export default function App() {
           </Route>
 
           {/* Auth Layout */}
-          <Route path="/TailAdmin/signin" element={<SignIn />} />
-          <Route path="/TailAdmin/signup" element={<SignUp />} />
+          <Route path="/signin" element={<SignIn />} />
+          <Route path="/signup" element={<SignUp />} />
 
           {/* Fallback Route */}
           <Route path="*" element={<NotFound />} />

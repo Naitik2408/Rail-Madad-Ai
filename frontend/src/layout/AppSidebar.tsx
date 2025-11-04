@@ -9,13 +9,12 @@ import {
   GridIcon,
   HorizontaLDots,
   ListIcon,
-  PageIcon,
   PieChartIcon,
   PlugInIcon,
   TableIcon,
-  UserCircleIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
+import logo from "../../public/logo.png"
 
 type NavItem = {
   name: string;
@@ -28,66 +27,40 @@ const navItems: NavItem[] = [
   {
     icon: <GridIcon />,
     name: "Dashboard",
-    subItems: [{ name: "Ecommerce", path: "#!", pro: false }],
+    path: "/admin/dashboard",
   },
   {
-    icon: <CalenderIcon />,
-    name: "Calendar",
-    path: "calendar",
-  },
-  {
-    icon: <UserCircleIcon />,
-    name: "User Profile",
-    path: "profile",
-  },
-  {
-    name: "Forms",
     icon: <ListIcon />,
-    subItems: [{ name: "Form Elements", path: "form-elements", pro: false }],
+    name: "All Complaints",
+    path: "/admin/complaints",
   },
   {
-    name: "Tables",
+    icon: <PieChartIcon />,
+    name: "AI Insights",
+    path: "/admin/ai-insights",
+  },
+  {
+    icon: <BoxCubeIcon />,
+    name: "Department Routing",
+    path: "/admin/department-routing",
+  },
+  {
     icon: <TableIcon />,
-    subItems: [{ name: "Basic Tables", path: "basic-tables", pro: false }],
-  },
-  {
-    name: "Pages",
-    icon: <PageIcon />,
-    subItems: [
-      { name: "Blank Page", path: "blank", pro: false },
-      { name: "404 Error", path: "error-404", pro: false },
-    ],
+    name: "Analytics",
+    path: "/admin/analytics",
   },
 ];
 
 const othersItems: NavItem[] = [
   {
-    icon: <PieChartIcon />,
-    name: "Charts",
-    subItems: [
-      { name: "Line Chart", path: "line-chart", pro: false },
-      { name: "Bar Chart", path: "bar-chart", pro: false },
-    ],
-  },
-  {
-    icon: <BoxCubeIcon />,
-    name: "UI Elements",
-    subItems: [
-      { name: "Alerts", path: "alerts", pro: false },
-      { name: "Avatar", path: "avatars", pro: false },
-      { name: "Badge", path: "badge", pro: false },
-      { name: "Buttons", path: "buttons", pro: false },
-      { name: "Images", path: "images", pro: false },
-      { name: "Videos", path: "videos", pro: false },
-    ],
+    icon: <CalenderIcon />,
+    name: "Predictive Maintenance",
+    path: "/admin/predictive-maintenance",
   },
   {
     icon: <PlugInIcon />,
-    name: "Authentication",
-    subItems: [
-      { name: "Sign In", path: "signin", pro: false },
-      { name: "Sign Up", path: "signup", pro: false },
-    ],
+    name: "Settings",
+    path: "/admin/settings",
   },
 ];
 
@@ -293,7 +266,7 @@ const AppSidebar: React.FC = () => {
       >
         <Link to="/" className="flex items-center gap-3">
           <img
-            src="logo.png"
+            src={logo}
             alt="Logo"
             className={`object-contain p-2 rounded-md bg-blue-500 w-12`}
           />
