@@ -4,9 +4,17 @@ import { useState } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { MoreDotIcon } from "../../icons";
+import { useDashboard } from "../../hooks/useDashboard";
 
 export default function MonthlyTarget() {
-  const series = [75.55];
+  const { metrics } = useDashboard();
+
+  // Calculate resolution rate percentage
+  const resolutionRate = metrics?.totalComplaints && metrics.totalComplaints > 0
+    ? ((metrics.resolvedComplaints / metrics.totalComplaints) * 100).toFixed(2)
+    : 0;
+
+  const series = [Number(resolutionRate)];
   const options: ApexOptions = {
     colors: ["#465FFF"],
     chart: {

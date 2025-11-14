@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router";
 import SignIn from "./pages/AuthPages/SignIn";
 import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
@@ -26,6 +26,30 @@ import Analytics from "./pages/Analytics";
 import PredictiveMaintenance from "./pages/PredictiveMaintenance";
 import Settings from "./pages/Settings";
 import ComplaintChatbot from "./pages/ComplaintChatbot";
+import featureFlags from "./config/features";
+import { useAuth } from "./context/AuthContext";
+
+// Protected Route Component
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
 
 export default function App() {
   return (
@@ -39,15 +63,42 @@ export default function App() {
           {/* Public Complaint Chatbot */}
           <Route path="/complaints" element={<ComplaintChatbot />} />
 
-          {/* Admin Dashboard Layout */}
-          <Route path="/admin" element={<AppLayout />}>
+          {/* Admin Login */}
+          <Route path="/login" element={<SignIn />} />
+          <Route path="/signin" element={<SignIn />} />
+
+          {/* Admin Dashboard Layout - Protected */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AppLayout />
+              </ProtectedRoute>
+            }
+          >
+            {/* Redirect /admin to /admin/dashboard */}
+            <Route index element={<Navigate to="/admin/dashboard" replace />} />
+
+            {/* ✅ Core MVP Features */}
             <Route path="dashboard" element={<Home />} />
             <Route path="complaints" element={<AllComplaints />} />
-            <Route path="ai-insights" element={<AIInsights />} />
-            <Route path="department-routing" element={<DepartmentRouting />} />
-            <Route path="analytics" element={<Analytics />} />
-            <Route path="predictive-maintenance" element={<PredictiveMaintenance />} />
             <Route path="settings" element={<Settings />} />
+
+            {/* 🔒 Advanced Features (v2.0+) - Controlled by feature flags */}
+            {featureFlags.aiInsights && (
+              <Route path="ai-insights" element={<AIInsights />} />
+            )}
+            {featureFlags.departmentRouting && (
+              <Route path="department-routing" element={<DepartmentRouting />} />
+            )}
+            {featureFlags.analytics && (
+              <Route path="analytics" element={<Analytics />} />
+            )}
+
+            {/* 🚀 Future Features (v3.0+) - Controlled by feature flags */}
+            {featureFlags.predictiveMaintenance && (
+              <Route path="predictive-maintenance" element={<PredictiveMaintenance />} />
+            )}
 
             {/* Others Page */}
             <Route path="profile" element={<UserProfiles />} />

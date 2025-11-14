@@ -6,69 +6,56 @@ import {
   TableRow,
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
-
-// Define the TypeScript interface for the table rows
-interface Complaint {
-  id: number; // Unique identifier for each complaint
-  name: string; // Complaint title/description
-  variants: string; // Complaint ID or reference
-  category: string; // Category of the complaint
-  price: string; // Priority level or department
-  // status: string; // Status of the complaint
-  image: string; // URL or path to the complaint evidence image
-  status: "Resolved" | "In Progress" | "Pending"; // Status of the complaint
-}
-
-// Define the table data using the interface
-const tableData: Complaint[] = [
-  {
-    id: 1,
-    name: "Broken seat in coach B3",
-    variants: "RMD2024001",
-    category: "Coach Maintenance",
-    price: "High Priority",
-    status: "Resolved",
-    image: "./images/product/product-01.jpg", // Replace with actual image URL
-  },
-  {
-    id: 2,
-    name: "AC not working in compartment",
-    variants: "RMD2024002",
-    category: "HVAC",
-    price: "Medium Priority",
-    status: "In Progress",
-    image: "./images/product/product-02.jpg", // Replace with actual image URL
-  },
-  {
-    id: 3,
-    name: "Toilet facility unhygienic",
-    variants: "RMD2024003",
-    category: "Cleanliness",
-    price: "High Priority",
-    status: "Resolved",
-    image: "./images/product/product-03.jpg", // Replace with actual image URL
-  },
-  {
-    id: 4,
-    name: "Food quality poor in pantry car",
-    variants: "RMD2024004",
-    category: "Catering",
-    price: "Low Priority",
-    status: "Pending",
-    image: "./images/product/product-04.jpg", // Replace with actual image URL
-  },
-  {
-    id: 5,
-    name: "Staff rude behavior reported",
-    variants: "RMD2024005",
-    category: "Staff Conduct",
-    price: "Medium Priority",
-    status: "Resolved",
-    image: "./images/product/product-05.jpg", // Replace with actual image URL
-  },
-];
+import { useComplaints } from "../../hooks/useComplaints";
 
 export default function RecentOrders() {
+  const { complaints, isLoading } = useComplaints({ limit: 5 });
+
+  // Get the 5 most recent complaints - ensure complaints is an array
+  const recentComplaints = Array.isArray(complaints) ? complaints.slice(0, 5) : [];
+
+  // Helper functions to convert backend format to display format
+  const toDisplayStatus = (backendStatus: string): string => {
+    const map: { [key: string]: string } = {
+      'pending': 'Pending',
+      'in_progress': 'In Progress',
+      'resolved': 'Resolved',
+      'rejected': 'Rejected',
+    };
+    return map[backendStatus] || backendStatus;
+  };
+
+  const toDisplayPriority = (backendPriority: string): string => {
+    return backendPriority.charAt(0).toUpperCase() + backendPriority.slice(1);
+  };
+
+  const toDisplayCategory = (backendCategory: string): string => {
+    return backendCategory
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "resolved":
+        return "success";
+      case "in_progress":
+        return "warning";
+      case "pending":
+        return "error";
+      default:
+        return "primary";
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-IN', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pb-3 pt-4 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6">
       <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
@@ -143,7 +130,7 @@ export default function RecentOrders() {
                 isHeader
                 className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
               >
-                Price
+                Priority
               </TableCell>
               <TableCell
                 isHeader
@@ -151,55 +138,105 @@ export default function RecentOrders() {
               >
                 Status
               </TableCell>
+              <TableCell
+                isHeader
+                className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+              >
+                Date
+              </TableCell>
             </TableRow>
           </TableHeader>
 
           {/* Table Body */}
 
           <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
-            {tableData.map((product) => (
-              <TableRow key={product.id} className="">
-                <TableCell className="py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="h-[50px] w-[50px] overflow-hidden rounded-md">
-                      <img
-                        src={`${product.image}`}
-                        className="h-[50px] w-[50px]"
-                        alt={product.name}
-                      />
+            {isLoading ? (
+              // Loading skeleton
+              Array.from({ length: 5 }).map((_, index) => (
+                <TableRow key={index}>
+                  <TableCell className="py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-[50px] w-[50px] bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
+                      <div className="flex-1">
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-48 mb-2"></div>
+                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-24"></div>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                        {product.name}
-                      </p>
-                      <span className="text-gray-500 text-theme-xs dark:text-gray-400">
-                        {product.variants}
-                      </span>
-                    </div>
-                  </div>
+                  </TableCell>
+                  <TableCell className="py-3">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-24"></div>
+                  </TableCell>
+                  <TableCell className="py-3">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-20"></div>
+                  </TableCell>
+                  <TableCell className="py-3">
+                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-20"></div>
+                  </TableCell>
+                  <TableCell className="py-3">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-20"></div>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : recentComplaints.length === 0 ? (
+              <TableRow>
+                <TableCell className="py-8 text-center">
+                  <p className="text-gray-500 dark:text-gray-400">No recent complaints found</p>
                 </TableCell>
-                <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  {product.price}
-                </TableCell>
-                <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  {product.category}
-                </TableCell>
-                <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  <Badge
-                    size="sm"
-                    color={
-                      product.status === "Resolved"
-                        ? "success"
-                        : product.status === "In Progress"
-                          ? "warning"
-                          : "error"
-                    }
-                  >
-                    {product.status}
-                  </Badge>
-                </TableCell>
+                <TableCell className="py-8"> </TableCell>
+                <TableCell className="py-8"> </TableCell>
+                <TableCell className="py-8"> </TableCell>
+                <TableCell className="py-8"> </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              recentComplaints.map((complaint) => (
+                <TableRow key={complaint._id}>
+                  <TableCell className="py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-[50px] w-[50px] overflow-hidden rounded-md bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                        <svg
+                          className="w-6 h-6 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800 text-theme-sm dark:text-white/90">
+                          {complaint.title || complaint.description.substring(0, 40) + '...'}
+                        </p>
+                        <span className="text-gray-500 text-theme-xs dark:text-gray-400">
+                          {complaint.complaintId}
+                        </span>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                    {toDisplayCategory(complaint.category)}
+                  </TableCell>
+                  <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                    {toDisplayPriority(complaint.priority)}
+                  </TableCell>
+                  <TableCell className="py-3">
+                    <Badge
+                      size="sm"
+                      color={getStatusColor(complaint.status)}
+                    >
+                      {toDisplayStatus(complaint.status)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="py-3 text-gray-500 text-theme-xs dark:text-gray-400">
+                    {formatDate(complaint.createdAt)}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

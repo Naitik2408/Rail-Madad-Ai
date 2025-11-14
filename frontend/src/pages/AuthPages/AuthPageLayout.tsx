@@ -21,12 +21,12 @@ export default function AuthLayout({
                 <img
                   width={231}
                   height={48}
-                  src="logo.png"
-                  alt="Logo"
+                  src="/logo.png"
+                  alt="Rail Madad Logo"
                 />
               </Link>
               <p className="text-center text-gray-400 dark:text-white/60">
-                Free and Open-Source Tailwind CSS Admin Dashboard Template
+                AI-Powered Railway Complaint Management System
               </p>
             </div>
           </div>

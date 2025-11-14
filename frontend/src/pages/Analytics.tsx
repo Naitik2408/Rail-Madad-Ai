@@ -3,8 +3,14 @@ import PageMeta from "../components/common/PageMeta";
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
 import Badge from "../components/ui/badge/Badge";
+import { AnalyticsComingSoon } from "../components/common/ComingSoonOverlay";
+import featureFlags from "../config/features";
 
 export default function Analytics() {
+    // If feature is disabled, show Coming Soon overlay
+    if (!featureFlags.analytics) {
+        return <AnalyticsComingSoon />;
+    }
     const [selectedTimeframe, setSelectedTimeframe] = useState("30days");
     const [selectedMetric, setSelectedMetric] = useState("complaints");
 
@@ -372,6 +378,13 @@ export default function Analytics() {
             />
 
             <div className="space-y-6">
+                {/* Info Banner */}
+                <div className="rounded-lg border border-purple-200 bg-purple-50 p-4 dark:border-purple-900/50 dark:bg-purple-900/20">
+                    <p className="text-sm text-purple-800 dark:text-purple-200">
+                        <strong>Analytics Dashboard:</strong> Track historical trends, measure performance metrics, analyze train-wise statistics, and generate comprehensive reports with advanced data visualization for data-driven decision making.
+                    </p>
+                </div>
+
                 {/* Page Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>

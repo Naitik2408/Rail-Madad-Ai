@@ -8,6 +8,8 @@ import {
     TableRow,
 } from "../components/ui/table";
 import Badge from "../components/ui/badge/Badge";
+import { DepartmentRoutingComingSoon } from "../components/common/ComingSoonOverlay";
+import featureFlags from "../config/features";
 
 // Define the TypeScript interface for routing rules
 interface RoutingRule {
@@ -168,6 +170,11 @@ const pendingComplaintsData: PendingComplaint[] = [
 ];
 
 export default function DepartmentRouting() {
+    // If feature is disabled, show Coming Soon overlay
+    if (!featureFlags.departmentRouting) {
+        return <DepartmentRoutingComingSoon />;
+    }
+
     const [selectedTab, setSelectedTab] = useState<"pending" | "rules">(
         "pending"
     );
@@ -276,6 +283,13 @@ export default function DepartmentRouting() {
             />
 
             <div className="space-y-6">
+                {/* Info Banner */}
+                <div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-900/50 dark:bg-green-900/20">
+                    <p className="text-sm text-green-800 dark:text-green-200">
+                        <strong>Department Routing:</strong> Automatically route complaints to the right department using AI-powered keyword analysis and confidence scoring. Manage routing rules and monitor department performance in real-time.
+                    </p>
+                </div>
+
                 {/* Page Header */}
                 <div>
                     <h1 className="text-2xl font-bold text-gray-800 dark:text-white/90 sm:text-3xl">

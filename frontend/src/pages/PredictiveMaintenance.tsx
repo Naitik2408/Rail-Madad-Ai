@@ -3,8 +3,14 @@ import PageMeta from "../components/common/PageMeta";
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
 import Badge from "../components/ui/badge/Badge";
+import { PredictiveMaintenanceComingSoon } from "../components/common/ComingSoonOverlay";
+import featureFlags from "../config/features";
 
 export default function PredictiveMaintenance() {
+    // If feature is disabled, show Coming Soon overlay
+    if (!featureFlags.predictiveMaintenance) {
+        return <PredictiveMaintenanceComingSoon />;
+    }
     const [selectedTrain, setSelectedTrain] = useState("all");
     const [selectedTimeframe, setSelectedTimeframe] = useState("30days");
 
@@ -348,6 +354,13 @@ export default function PredictiveMaintenance() {
             />
 
             <div className="space-y-6">
+                {/* Info Banner */}
+                <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 dark:border-orange-900/50 dark:bg-orange-900/20">
+                    <p className="text-sm text-orange-800 dark:text-orange-200">
+                        <strong>Predictive Maintenance:</strong> Monitor equipment health, predict potential failures before they occur, and schedule proactive maintenance using IoT sensors and machine learning algorithms to minimize downtime and improve service reliability.
+                    </p>
+                </div>
+
                 {/* Page Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>

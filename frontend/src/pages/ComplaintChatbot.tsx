@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router";
+import api from "../services/api";
+import { getJourneyDetails } from "../services/mockTrainData";
 
 type Message = {
     id: string;
@@ -13,11 +15,27 @@ type ComplaintData = {
     category?: string;
     subCategory?: string;
     trainNumber?: string;
+    trainName?: string;
     pnr?: string;
+    coach?: string;
+    station?: string;
+    journeyDate?: string;
     description?: string;
     name?: string;
     mobile?: string;
     email?: string;
+};
+
+// Map display categories to backend categories
+const categoryMap: { [key: string]: string } = {
+    "Coach Cleanliness": "cleanliness",
+    "Punctuality": "other",
+    "Water Availability": "facilities",
+    "Staff Behavior": "staff_behavior",
+    "Electrical Equipment": "maintenance",
+    "Security": "security",
+    "Catering & Vending": "food_quality",
+    "Other": "other",
 };
 
 export default function ComplaintChatbot() {
@@ -71,6 +89,58 @@ export default function ComplaintChatbot() {
         setMessages((prev) => [...prev, newMessage]);
     };
 
+    const handleComplaintSubmission = async () => {
+        setIsTyping(true);
+        addMessage("⏳ Submitting your complaint...", "bot");
+
+        try {
+            // Prepare complaint data for backend
+            const backendCategory = categoryMap[complaintData.category || "Other"];
+
+            const submissionData = {
+                name: complaintData.name!,
+                email: complaintData.email || complaintData.mobile + "@temp.railmadad.in", // Email is required by backend
+                phoneNumber: complaintData.mobile,
+                category: backendCategory,
+                description: complaintData.description!,
+                trainNumber: complaintData.trainNumber,
+                trainName: complaintData.trainName,
+                coach: complaintData.coach,
+                station: complaintData.station,
+                journeyDate: complaintData.journeyDate,
+                pnr: complaintData.pnr,
+            };
+
+            // Submit to backend
+            const response = await api.complaints.submit(submissionData);
+
+            setIsTyping(false);
+
+            if (response.success && response.data) {
+                addMessage(
+                    `✅ Your complaint has been successfully registered!\n\n` +
+                    `**Complaint ID:** ${response.data.complaintId}\n` +
+                    `**Status:** ${response.data.status}\n` +
+                    `**Category:** ${complaintData.category}\n\n` +
+                    `You can track your complaint using this ID. You will receive updates via SMS${complaintData.email ? ' and email' : ''}.\n\n` +
+                    `Thank you for using Rail Madad! 🙏`,
+                    "bot",
+                    ["File Another Complaint", "Go to Home"]
+                );
+                setCurrentStep(9);
+            }
+        } catch (error: any) {
+            setIsTyping(false);
+            addMessage(
+                `❌ Sorry, there was an error submitting your complaint: ${error.message}\n\n` +
+                `Please try again or contact support.`,
+                "bot",
+                ["Try Again", "Go to Home"]
+            );
+            setCurrentStep(10);
+        }
+    };
+
     const handleBotResponse = (userResponse: string, step: number) => {
         setIsTyping(true);
 
@@ -114,21 +184,68 @@ export default function ComplaintChatbot() {
                     break;
 
                 case 3: // Train number
-                    setComplaintData((prev) => ({ ...prev, trainNumber: userResponse }));
-                    addMessage(
-                        "Great! Now, please provide your contact details. What is your full name?",
-                        "bot"
-                    );
-                    setCurrentStep(5);
+                    {
+                        const journeyDetails = getJourneyDetails(userResponse);
+                        if (journeyDetails) {
+                            setComplaintData((prev) => ({
+                                ...prev,
+                                trainNumber: journeyDetails.trainNumber,
+                                trainName: journeyDetails.trainName,
+                                coach: journeyDetails.coach,
+                                station: journeyDetails.station,
+                                journeyDate: journeyDetails.journeyDate
+                            }));
+                            addMessage(
+                                `✅ Found train details!\n\n` +
+                                `🚂 Train: ${journeyDetails.trainNumber} - ${journeyDetails.trainName}\n` +
+                                `🎫 Coach: ${journeyDetails.coach}\n` +
+                                `🚉 Station: ${journeyDetails.station}\n` +
+                                `📅 Journey Date: ${new Date(journeyDetails.journeyDate).toLocaleDateString('en-IN')}\n\n` +
+                                `Now, please provide your contact details. What is your full name?`,
+                                "bot"
+                            );
+                        } else {
+                            setComplaintData((prev) => ({ ...prev, trainNumber: userResponse }));
+                            addMessage(
+                                `Train number ${userResponse} noted. Now, please provide your contact details. What is your full name?`,
+                                "bot"
+                            );
+                        }
+                        setCurrentStep(5);
+                    }
                     break;
 
                 case 4: // PNR
-                    setComplaintData((prev) => ({ ...prev, pnr: userResponse }));
-                    addMessage(
-                        "Perfect! Now, please provide your contact details. What is your full name?",
-                        "bot"
-                    );
-                    setCurrentStep(5);
+                    {
+                        const journeyDetails = getJourneyDetails(undefined, userResponse);
+                        if (journeyDetails) {
+                            setComplaintData((prev) => ({
+                                ...prev,
+                                pnr: userResponse,
+                                trainNumber: journeyDetails.trainNumber,
+                                trainName: journeyDetails.trainName,
+                                coach: journeyDetails.coach,
+                                station: journeyDetails.station,
+                                journeyDate: journeyDetails.journeyDate
+                            }));
+                            addMessage(
+                                `✅ PNR verified! Found journey details:\n\n` +
+                                `🚂 Train: ${journeyDetails.trainNumber} - ${journeyDetails.trainName}\n` +
+                                `🎫 Coach: ${journeyDetails.coach}\n` +
+                                `🚉 Station: ${journeyDetails.station}\n` +
+                                `📅 Journey Date: ${new Date(journeyDetails.journeyDate).toLocaleDateString('en-IN')}\n\n` +
+                                `Perfect! Now, please provide your contact details. What is your full name?`,
+                                "bot"
+                            );
+                        } else {
+                            setComplaintData((prev) => ({ ...prev, pnr: userResponse }));
+                            addMessage(
+                                `PNR ${userResponse} noted. Now, please provide your contact details. What is your full name?`,
+                                "bot"
+                            );
+                        }
+                        setCurrentStep(5);
+                    }
                     break;
 
                 case 5: // Name
@@ -144,8 +261,9 @@ export default function ComplaintChatbot() {
                     break;
 
                 case 7: // Email
-                    if (userResponse.toLowerCase() !== "skip") {
-                        setComplaintData((prev) => ({ ...prev, email: userResponse }));
+                    const finalEmail = userResponse.toLowerCase() !== "skip" ? userResponse : undefined;
+                    if (finalEmail) {
+                        setComplaintData((prev) => ({ ...prev, email: finalEmail }));
                     }
                     addMessage(
                         "Perfect! Let me summarize your complaint:",
@@ -154,13 +272,22 @@ export default function ComplaintChatbot() {
                     setTimeout(() => {
                         const summary = `
 📋 **Complaint Summary**
+
+**Journey Details:**
+${complaintData.trainNumber ? `🚂 Train: ${complaintData.trainNumber}${complaintData.trainName ? ' - ' + complaintData.trainName : ''}` : ""}
+${complaintData.coach ? `🎫 Coach: ${complaintData.coach}` : ""}
+${complaintData.station ? `🚉 Station: ${complaintData.station}` : ""}
+${complaintData.journeyDate ? `📅 Date: ${new Date(complaintData.journeyDate).toLocaleDateString('en-IN')}` : ""}
+${complaintData.pnr ? `🎟️ PNR: ${complaintData.pnr}` : ""}
+
+**Complaint:**
 • Category: ${complaintData.category}
 • Description: ${complaintData.description}
-${complaintData.trainNumber ? `• Train Number: ${complaintData.trainNumber}` : ""}
-${complaintData.pnr ? `• PNR: ${complaintData.pnr}` : ""}
-• Name: ${userResponse.toLowerCase() !== "skip" ? complaintData.name : userResponse}
+
+**Contact:**
+• Name: ${complaintData.name}
 • Mobile: ${complaintData.mobile}
-${userResponse.toLowerCase() !== "skip" ? `• Email: ${userResponse}` : ""}
+${finalEmail ? `• Email: ${finalEmail}` : ""}
 
 Would you like to submit this complaint?
                         `.trim();
@@ -171,14 +298,8 @@ Would you like to submit this complaint?
 
                 case 8: // Confirm submission
                     if (userResponse === "Yes, Submit") {
-                        addMessage(
-                            "✅ Your complaint has been successfully registered! Your Complaint ID is: #RM" +
-                            Math.floor(100000 + Math.random() * 900000) +
-                            "\n\nYou will receive updates via SMS and email. Thank you for using Rail Madad! 🙏",
-                            "bot",
-                            ["File Another Complaint", "Go to Home"]
-                        );
-                        setCurrentStep(9);
+                        // Submit complaint to backend
+                        handleComplaintSubmission();
                     } else {
                         addMessage(
                             "Complaint cancelled. Would you like to start over?",
@@ -214,28 +335,34 @@ Would you like to submit this complaint?
                     }
                     break;
 
-                case 10: // Cancel flow
-                    if (userResponse === "Start Over") {
-                        setComplaintData({});
-                        setCurrentStep(0);
-                        setMessages([
-                            {
-                                id: Date.now().toString(),
-                                type: "bot",
-                                content: "Let's start fresh. What type of complaint would you like to file?",
-                                timestamp: new Date(),
-                                options: [
-                                    "Coach Cleanliness",
-                                    "Punctuality",
-                                    "Water Availability",
-                                    "Staff Behavior",
-                                    "Electrical Equipment",
-                                    "Security",
-                                    "Catering & Vending",
-                                    "Other",
-                                ],
-                            },
-                        ]);
+                case 10: // Cancel flow or retry after error
+                    if (userResponse === "Start Over" || userResponse === "Try Again") {
+                        if (userResponse === "Try Again") {
+                            // Retry submission with existing data
+                            handleComplaintSubmission();
+                        } else {
+                            // Start fresh
+                            setComplaintData({});
+                            setCurrentStep(0);
+                            setMessages([
+                                {
+                                    id: Date.now().toString(),
+                                    type: "bot",
+                                    content: "Let's start fresh. What type of complaint would you like to file?",
+                                    timestamp: new Date(),
+                                    options: [
+                                        "Coach Cleanliness",
+                                        "Punctuality",
+                                        "Water Availability",
+                                        "Staff Behavior",
+                                        "Electrical Equipment",
+                                        "Security",
+                                        "Catering & Vending",
+                                        "Other",
+                                    ],
+                                },
+                            ]);
+                        }
                     }
                     break;
 

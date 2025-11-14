@@ -5,8 +5,21 @@ import {
   GroupIcon,
 } from "../../icons";
 import Badge from "../ui/badge/Badge";
+import { useDashboard } from "../../hooks/useDashboard";
 
 export default function EcommerceMetrics() {
+  const { metrics, isLoading, error } = useDashboard();
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-5 dark:border-red-800 dark:bg-red-900/20">
+        <p className="text-sm text-red-600 dark:text-red-400">
+          Error loading metrics: {error}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6">
       {/* <!-- Metric Item Start --> */}
@@ -21,7 +34,11 @@ export default function EcommerceMetrics() {
               Total Complaints
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              8,942
+              {isLoading ? (
+                <span className="inline-block w-16 h-8 bg-gray-200 dark:bg-gray-700 animate-pulse rounded"></span>
+              ) : (
+                metrics?.totalComplaints?.toLocaleString() || '0'
+              )}
             </h4>
           </div>
           <Badge color="success">
@@ -43,7 +60,11 @@ export default function EcommerceMetrics() {
               Resolved Today
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              743
+              {isLoading ? (
+                <span className="inline-block w-16 h-8 bg-gray-200 dark:bg-gray-700 animate-pulse rounded"></span>
+              ) : (
+                metrics?.resolvedToday?.toLocaleString() || '0'
+              )}
             </h4>
           </div>
 

@@ -3,8 +3,14 @@ import PageMeta from "../components/common/PageMeta";
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
 import Badge from "../components/ui/badge/Badge";
+import { AIInsightsComingSoon } from "../components/common/ComingSoonOverlay";
+import featureFlags from "../config/features";
 
 export default function AIInsights() {
+    // If feature is disabled, show Coming Soon overlay
+    if (!featureFlags.aiInsights) {
+        return <AIInsightsComingSoon />;
+    }
     const [selectedTimeframe, setSelectedTimeframe] = useState("7days");
 
     // Sentiment Analysis Chart
@@ -255,6 +261,13 @@ export default function AIInsights() {
             />
 
             <div className="space-y-6">
+                {/* Info Banner */}
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900/50 dark:bg-blue-900/20">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                        <strong>AI Insights:</strong> Leverage machine learning to analyze complaint patterns, detect sentiment, identify trends, and receive actionable recommendations for improving railway service quality.
+                    </p>
+                </div>
+
                 {/* Page Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>

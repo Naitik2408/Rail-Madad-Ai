@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PageMeta from "../components/common/PageMeta";
 import {
     Table,
@@ -8,175 +8,83 @@ import {
     TableRow,
 } from "../components/ui/table";
 import Badge from "../components/ui/badge/Badge";
-
-// Define the TypeScript interface for complaints
-interface Complaint {
-    id: number;
-    complaintId: string;
-    title: string;
-    category: string;
-    priority: "High" | "Medium" | "Low";
-    status: "Resolved" | "In Progress" | "Pending";
-    submittedBy: string;
-    train: string;
-    coach: string;
-    dateSubmitted: string;
-    department: string;
-}
-
-// Sample data for complaints
-const complaintsData: Complaint[] = [
-    {
-        id: 1,
-        complaintId: "RMD2024001",
-        title: "Broken seat in coach B3",
-        category: "Coach Maintenance",
-        priority: "High",
-        status: "Resolved",
-        submittedBy: "Rajesh Kumar",
-        train: "12301 - Howrah Rajdhani",
-        coach: "B3",
-        dateSubmitted: "2024-11-01",
-        department: "Mechanical",
-    },
-    {
-        id: 2,
-        complaintId: "RMD2024002",
-        title: "AC not working in compartment",
-        category: "HVAC",
-        priority: "Medium",
-        status: "In Progress",
-        submittedBy: "Priya Sharma",
-        train: "12951 - Mumbai Rajdhani",
-        coach: "A1",
-        dateSubmitted: "2024-11-02",
-        department: "Electrical",
-    },
-    {
-        id: 3,
-        complaintId: "RMD2024003",
-        title: "Toilet facility unhygienic",
-        category: "Cleanliness",
-        priority: "High",
-        status: "Resolved",
-        submittedBy: "Amit Patel",
-        train: "12430 - Lucknow AC SF",
-        coach: "C2",
-        dateSubmitted: "2024-11-02",
-        department: "Housekeeping",
-    },
-    {
-        id: 4,
-        complaintId: "RMD2024004",
-        title: "Food quality poor in pantry car",
-        category: "Catering",
-        priority: "Low",
-        status: "Pending",
-        submittedBy: "Sneha Gupta",
-        train: "12002 - Bhopal Shatabdi",
-        coach: "Pantry",
-        dateSubmitted: "2024-11-03",
-        department: "Catering",
-    },
-    {
-        id: 5,
-        complaintId: "RMD2024005",
-        title: "Staff rude behavior reported",
-        category: "Staff Conduct",
-        priority: "Medium",
-        status: "Resolved",
-        submittedBy: "Vikram Singh",
-        train: "12301 - Howrah Rajdhani",
-        coach: "A2",
-        dateSubmitted: "2024-11-03",
-        department: "Administration",
-    },
-    {
-        id: 6,
-        complaintId: "RMD2024006",
-        title: "Water not available in coach",
-        category: "Amenities",
-        priority: "High",
-        status: "In Progress",
-        submittedBy: "Kavita Reddy",
-        train: "12621 - Tamil Nadu Exp",
-        coach: "S4",
-        dateSubmitted: "2024-11-04",
-        department: "Operations",
-    },
-    {
-        id: 7,
-        complaintId: "RMD2024007",
-        title: "Window broken causing air leakage",
-        category: "Coach Maintenance",
-        priority: "High",
-        status: "In Progress",
-        submittedBy: "Suresh Menon",
-        train: "12260 - Duronto Express",
-        coach: "B1",
-        dateSubmitted: "2024-11-04",
-        department: "Mechanical",
-    },
-    {
-        id: 8,
-        complaintId: "RMD2024008",
-        title: "Charging point not working",
-        category: "Electrical",
-        priority: "Low",
-        status: "Pending",
-        submittedBy: "Neha Joshi",
-        train: "12951 - Mumbai Rajdhani",
-        coach: "A3",
-        dateSubmitted: "2024-11-04",
-        department: "Electrical",
-    },
-    {
-        id: 9,
-        complaintId: "RMD2024009",
-        title: "Bedding not provided",
-        category: "Amenities",
-        priority: "Medium",
-        status: "Resolved",
-        submittedBy: "Rahul Verma",
-        train: "12430 - Lucknow AC SF",
-        coach: "B2",
-        dateSubmitted: "2024-11-05",
-        department: "Operations",
-    },
-    {
-        id: 10,
-        complaintId: "RMD2024010",
-        title: "Rats spotted in coach",
-        category: "Cleanliness",
-        priority: "High",
-        status: "In Progress",
-        submittedBy: "Meena Iyer",
-        train: "12002 - Bhopal Shatabdi",
-        coach: "C1",
-        dateSubmitted: "2024-11-05",
-        department: "Housekeeping",
-    },
-];
+import { useComplaints, Complaint } from "../hooks/useComplaints";
+import ComplaintDetailsModal from "../components/complaints/ComplaintDetailsModal";
 
 export default function AllComplaints() {
     const [searchQuery, setSearchQuery] = useState("");
     const [filterStatus, setFilterStatus] = useState<string>("All");
     const [filterPriority, setFilterPriority] = useState<string>("All");
     const [filterCategory, setFilterCategory] = useState<string>("All");
+    const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // Filter complaints based on search and filters
-    const filteredComplaints = complaintsData.filter((complaint) => {
+    const { complaints, isLoading, error, totalCount, refetch, updateComplaint, deleteComplaint } = useComplaints();
+
+    // Helper functions to convert between display format and backend format
+    const toBackendStatus = (displayStatus: string): string => {
+        const map: { [key: string]: string } = {
+            'Pending': 'pending',
+            'In Progress': 'in_progress',
+            'Resolved': 'resolved',
+        };
+        return map[displayStatus] || displayStatus.toLowerCase();
+    };
+
+    const toDisplayStatus = (backendStatus: string): string => {
+        const map: { [key: string]: string } = {
+            'pending': 'Pending',
+            'in_progress': 'In Progress',
+            'resolved': 'Resolved',
+            'rejected': 'Rejected',
+        };
+        return map[backendStatus] || backendStatus;
+    };
+
+    const toBackendPriority = (displayPriority: string): string => {
+        return displayPriority.toLowerCase(); // High -> high
+    };
+
+    const toDisplayPriority = (backendPriority: string): string => {
+        return backendPriority.charAt(0).toUpperCase() + backendPriority.slice(1); // high -> High
+    };
+
+    const toBackendCategory = (displayCategory: string): string => {
+        return displayCategory.toLowerCase().replace(/\s+/g, '_'); // "Staff Conduct" -> "staff_conduct"
+    };
+
+    const toDisplayCategory = (backendCategory: string): string => {
+        return backendCategory
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' '); // "staff_conduct" -> "Staff Conduct"
+    };
+
+    // Refetch when filters change
+    useEffect(() => {
+        const filters: any = {};
+
+        if (searchQuery) filters.search = searchQuery;
+        if (filterStatus !== "All") filters.status = toBackendStatus(filterStatus);
+        if (filterPriority !== "All") filters.priority = toBackendPriority(filterPriority);
+        if (filterCategory !== "All") filters.category = toBackendCategory(filterCategory);
+
+        refetch(filters);
+    }, [searchQuery, filterStatus, filterPriority, filterCategory]);
+
+    // Filter complaints on the client side as well
+    const filteredComplaints = complaints.filter((complaint) => {
         const matchesSearch =
-            complaint.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (complaint.title?.toLowerCase() || complaint.description.toLowerCase()).includes(searchQuery.toLowerCase()) ||
             complaint.complaintId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            complaint.train.toLowerCase().includes(searchQuery.toLowerCase());
+            (complaint.trainName?.toLowerCase() || '').includes(searchQuery.toLowerCase());
 
         const matchesStatus =
-            filterStatus === "All" || complaint.status === filterStatus;
+            filterStatus === "All" || complaint.status === toBackendStatus(filterStatus);
         const matchesPriority =
-            filterPriority === "All" || complaint.priority === filterPriority;
+            filterPriority === "All" || complaint.priority === toBackendPriority(filterPriority);
         const matchesCategory =
-            filterCategory === "All" || complaint.category === filterCategory;
+            filterCategory === "All" || complaint.category === toBackendCategory(filterCategory);
 
         return matchesSearch && matchesStatus && matchesPriority && matchesCategory;
     });
@@ -207,6 +115,39 @@ export default function AllComplaints() {
         }
     };
 
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString('en-IN', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    };
+
+    if (error) {
+        return (
+            <div className="space-y-6">
+                <PageMeta
+                    title="All Complaints | Rail Madad AI"
+                    description="View and manage all railway passenger complaints in the Rail Madad AI system"
+                />
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-8 dark:border-red-800 dark:bg-red-900/20">
+                    <h3 className="text-lg font-semibold text-red-800 dark:text-red-200 mb-2">
+                        Error Loading Complaints
+                    </h3>
+                    <p className="text-sm text-red-600 dark:text-red-400">
+                        {error}
+                    </p>
+                    <button
+                        onClick={() => refetch()}
+                        className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                    >
+                        Retry
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <>
             <PageMeta
@@ -234,7 +175,11 @@ export default function AllComplaints() {
                                     Total Complaints
                                 </p>
                                 <p className="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
-                                    {complaintsData.length}
+                                    {isLoading ? (
+                                        <span className="inline-block w-16 h-8 bg-gray-200 dark:bg-gray-700 animate-pulse rounded"></span>
+                                    ) : (
+                                        totalCount
+                                    )}
                                 </p>
                             </div>
                             <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-xl dark:bg-blue-900">
@@ -262,10 +207,11 @@ export default function AllComplaints() {
                                     Resolved
                                 </p>
                                 <p className="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
-                                    {
-                                        complaintsData.filter((c) => c.status === "Resolved")
-                                            .length
-                                    }
+                                    {isLoading ? (
+                                        <span className="inline-block w-16 h-8 bg-gray-200 dark:bg-gray-700 animate-pulse rounded"></span>
+                                    ) : (
+                                        complaints.filter((c) => c.status === "resolved").length
+                                    )}
                                 </p>
                             </div>
                             <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-xl dark:bg-green-900">
@@ -293,10 +239,11 @@ export default function AllComplaints() {
                                     In Progress
                                 </p>
                                 <p className="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
-                                    {
-                                        complaintsData.filter((c) => c.status === "In Progress")
-                                            .length
-                                    }
+                                    {isLoading ? (
+                                        <span className="inline-block w-16 h-8 bg-gray-200 dark:bg-gray-700 animate-pulse rounded"></span>
+                                    ) : (
+                                        complaints.filter((c) => c.status === "in_progress").length
+                                    )}
                                 </p>
                             </div>
                             <div className="flex items-center justify-center w-12 h-12 bg-yellow-100 rounded-xl dark:bg-yellow-900">
@@ -324,9 +271,11 @@ export default function AllComplaints() {
                                     Pending
                                 </p>
                                 <p className="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
-                                    {
-                                        complaintsData.filter((c) => c.status === "Pending").length
-                                    }
+                                    {isLoading ? (
+                                        <span className="inline-block w-16 h-8 bg-gray-200 dark:bg-gray-700 animate-pulse rounded"></span>
+                                    ) : (
+                                        complaints.filter((c) => c.status === "pending").length
+                                    )}
                                 </p>
                             </div>
                             <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-xl dark:bg-red-900">
@@ -420,8 +369,8 @@ export default function AllComplaints() {
                                     key={category}
                                     onClick={() => setFilterCategory(category)}
                                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filterCategory === category
-                                            ? "bg-brand-500 text-white"
-                                            : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                                        ? "bg-brand-500 text-white"
+                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                                         }`}
                                 >
                                     {category}
@@ -441,7 +390,7 @@ export default function AllComplaints() {
                                 </h3>
                                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                     Showing {filteredComplaints.length} of{" "}
-                                    {complaintsData.length} complaints
+                                    {totalCount} complaints
                                 </p>
                             </div>
 
@@ -500,81 +449,126 @@ export default function AllComplaints() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filteredComplaints.map((complaint) => (
-                                        <TableRow key={complaint.id}>
-                                            <TableCell className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white/90">
-                                                {complaint.complaintId}
-                                            </TableCell>
-                                            <TableCell className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                                                <div className="max-w-xs">
-                                                    <p className="font-medium">{complaint.title}</p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                        By: {complaint.submittedBy}
-                                                    </p>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                                                <div>
-                                                    <p className="font-medium">{complaint.train}</p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                        Coach: {complaint.coach}
-                                                    </p>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                                                {complaint.category}
-                                            </TableCell>
-                                            <TableCell className="px-4 py-3">
-                                                <Badge
-                                                    size="sm"
-                                                    color={getPriorityColor(complaint.priority)}
-                                                >
-                                                    {complaint.priority}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="px-4 py-3">
-                                                <Badge
-                                                    size="sm"
-                                                    color={getStatusColor(complaint.status)}
-                                                >
-                                                    {complaint.status}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                                                {complaint.department}
-                                            </TableCell>
-                                            <TableCell className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                                                {new Date(complaint.dateSubmitted).toLocaleDateString()}
-                                            </TableCell>
-                                            <TableCell className="px-4 py-3">
-                                                <button className="text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300">
-                                                    <svg
-                                                        className="w-5 h-5"
-                                                        fill="none"
-                                                        stroke="currentColor"
-                                                        viewBox="0 0 24 24"
+                                    {isLoading ? (
+                                        // Loading skeleton rows
+                                        Array.from({ length: 5 }).map((_, index) => (
+                                            <TableRow key={index}>
+                                                <TableCell className="px-4 py-3">
+                                                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-24"></div>
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3">
+                                                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-48"></div>
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3">
+                                                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-32"></div>
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3">
+                                                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-20"></div>
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3">
+                                                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-16"></div>
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3">
+                                                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-20"></div>
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3">
+                                                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-24"></div>
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3">
+                                                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-20"></div>
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3">
+                                                    <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-5"></div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        filteredComplaints.map((complaint) => (
+                                            <TableRow key={complaint._id}>
+                                                <TableCell className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white/90">
+                                                    {complaint.complaintId}
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                                                    <div className="max-w-xs">
+                                                        <p className="font-medium">
+                                                            {complaint.title || complaint.description.substring(0, 50) + '...'}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                            By: {complaint.name || complaint.email || 'Anonymous'}
+                                                        </p>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                                                    <div>
+                                                        <p className="font-medium">
+                                                            {complaint.trainNumber ? `${complaint.trainNumber}${complaint.trainName ? ` - ${complaint.trainName}` : ''}` : 'N/A'}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                            Coach: {complaint.coach || 'N/A'}
+                                                        </p>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                                                    {toDisplayCategory(complaint.category)}
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3">
+                                                    <Badge
+                                                        size="sm"
+                                                        color={getPriorityColor(toDisplayPriority(complaint.priority))}
                                                     >
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth={2}
-                                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                                        />
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth={2}
-                                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                                        />
-                                                    </svg>
-                                                </button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
+                                                        {toDisplayPriority(complaint.priority)}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3">
+                                                    <Badge
+                                                        size="sm"
+                                                        color={getStatusColor(toDisplayStatus(complaint.status))}
+                                                    >
+                                                        {toDisplayStatus(complaint.status)}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                                                    {complaint.department || 'Unassigned'}
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                                                    {formatDate(complaint.createdAt)}
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3">
+                                                    <button
+                                                        className="text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
+                                                        onClick={() => {
+                                                            setSelectedComplaint(complaint);
+                                                            setIsModalOpen(true);
+                                                        }}
+                                                    >
+                                                        <svg
+                                                            className="w-5 h-5"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                                            />
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                                            />
+                                                        </svg>
+                                                    </button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
                                 </TableBody>
                             </Table>
 
-                            {filteredComplaints.length === 0 && (
+                            {!isLoading && filteredComplaints.length === 0 && (
                                 <div className="py-12 text-center">
                                     <svg
                                         className="w-12 h-12 mx-auto text-gray-400"
@@ -598,6 +592,18 @@ export default function AllComplaints() {
                     </div>
                 </div>
             </div>
+
+            {/* Complaint Details Modal */}
+            <ComplaintDetailsModal
+                complaint={selectedComplaint}
+                isOpen={isModalOpen}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setSelectedComplaint(null);
+                }}
+                onUpdate={updateComplaint}
+                onDelete={deleteComplaint}
+            />
         </>
     );
 }
